@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>生成excel</title>
+</head>
+<body>
+<div>
+    <button role="button" class="button-1" onclick="EleDownload()">饿了么导出</button>
+</div>
+
+<div>
+    <button class="button-1" onclick="MtDownload()">美团导出</button>
+</div>
+</body>
+
+
+
+<style>
+    .button-1 {
+        background-color: #EA4C89;
+        border-radius: 8px;
+        border-style: none;
+        box-sizing: border-box;
+        color: #FFFFFF;
+        cursor: pointer;
+        display: inline-block;
+        font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        height: 40px;
+        line-height: 20px;
+        list-style: none;
+        margin: 50px;
+        outline: none;
+        padding: 10px 16px;
+        position: relative;
+        text-align: center;
+        text-decoration: none;
+        transition: color 100ms;
+        vertical-align: baseline;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+    }
+
+    .button-1:hover,
+    .button-1:focus {
+        background-color: #F082AC;
+    }
+
+</style>
+
+<script type="text/javascript">
+
+
+    function EleDownload() {
+        window.open("http://localhost:8080/jsonToExcel/getEleData");
+    }
+
+
+    function MtDownload() {
+        window.open("http://localhost:8080/jsonToExcel/getMtData");
+    }
+
+</script>
+
+
+</html>
