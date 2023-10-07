@@ -3,6 +3,7 @@ package com.huyuanru.demo.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Maps;
 import com.huyuanru.demo.entity.*;
 import com.huyuanru.demo.utils.HttpUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -49,17 +50,16 @@ public class JsonToExcel {
     public void toExcel(HttpServletResponse response) {
         init();
         try (FileInputStream mtUrlIS = new FileInputStream(mtUrl.toFile());
-             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             FileInputStream inputStream = new FileInputStream(templatePath.toFile());) {
+             ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
             int k;
             while ((k = mtUrlIS.read()) != -1) {
                 baos.write(k);
             }
             String str = baos.toString("utf-8");
-            JSONObject jsonObject = JSONObject.parseObject(str);
-            ;
-            String menu = HttpUtils.get(jsonObject.getString("menus"));
-            String spus = HttpUtils.get(jsonObject.getString("spuss"));
+            //JSONObject jsonObject = JSONObject.parseObject(str);
+            Map<String, String> urlMap = parseUrl(str);
+            String menu = HttpUtils.get(urlMap.get("menus"));
+            String spus = HttpUtils.get(urlMap.get("spuss"));
             List<BaseInfo> infos = new ArrayList<>();
             JSONObject spuString = JSONObject.parseObject(spus);
             Map<String, Object> spuMap = spuString.getJSONObject("data").getJSONObject("spuDetail");
@@ -91,6 +91,9 @@ public class JsonToExcel {
             e.printStackTrace();
         }
     }
+
+
+
 
 /*
     @PostMapping("/toBaseInfo")
@@ -193,10 +196,10 @@ public class JsonToExcel {
 
 
     @GetMapping("/getShouyinTai")
-    public void getShouYin(HttpServletResponse response){
+    public void getShouYin(HttpServletResponse response) {
         init();
         try (FileInputStream is = new FileInputStream(sytJson.toFile());
-             ByteArrayOutputStream baos = new ByteArrayOutputStream();){
+             ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
             int i;
             while ((i = is.read()) != -1) {
                 baos.write(i);
@@ -209,10 +212,10 @@ public class JsonToExcel {
                 ShoyinTaiCate shoyinTaiCate = JSONObject.parseObject(JSONObject.toJSONString(o), ShoyinTaiCate.class);
                 String categoryName = shoyinTaiCate.getCategoryName();
                 List<ShoYinTaiDish> cateDishList = shoyinTaiCate.getCateDishList();
-                if (CollectionUtils.isNotEmpty(cateDishList)){
+                if (CollectionUtils.isNotEmpty(cateDishList)) {
                     for (ShoYinTaiDish shoYinTaiDish : cateDishList) {
                         BaseInfo info = BaseInfo.builder().category(categoryName).name(shoYinTaiDish.getDishName())
-                                .price(String.valueOf(shoYinTaiDish.getPrice()/100))
+                                .price(String.valueOf(shoYinTaiDish.getPrice() / 100))
                                 .specification("1人份").nums("1").build();
                         infos.add(info);
                     }
@@ -223,7 +226,7 @@ public class JsonToExcel {
             infos.sort(Comparator.comparing(BaseInfo::getCategory));
             XSSFWorkbook export = export(response, infos);
             export.write(response.getOutputStream());
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -294,10 +297,6 @@ public class JsonToExcel {
     }
 
 
-
-
-
-
     private void init() {
         try {
             String property = System.getProperty("user.dir");
@@ -330,8 +329,45 @@ public class JsonToExcel {
     }
 
 
+    private Map<String, String> parseUrl(String orgUrl) {
+        //将s按&分割,并且分割后按等号分割并汇集成map
+        String[] split = orgUrl.split("&");
+        HashMap<String, Object> paramsMap = Maps.newHashMap();
+        for (String orgParam : split) {
+            if (StringUtils.isNotBlank(orgParam) && orgParam.contains("=")) {
+                String[] paramNameAndValue = orgParam.split("=");
+                if (paramNameAndValue.length > 1 && StringUtils.isNotBlank(paramNameAndValue[0])) {
+                    paramsMap.put(paramNameAndValue[0], paramNameAndValue[1]);
+                }
+            }
+        }
 
+        Object shopId = paramsMap.get("shopId");
+        Object tableNum = paramsMap.get("tableNum");
+        Object tenantId = paramsMap.get("tenantId");
+        Object sign = paramsMap.get("sign");
+        Object timestamp = paramsMap.get("t");
 
+        String fpmTempUrl = "https://rms.meituan.com/diancan/menu/api/loadFMPInfo?" +
+                "mtShopId=" + shopId +
+                "&tableNum=" + tableNum + "&reserveMode=0&selectedTime=0&peopleCount=0&mealType=0&fromMenu=true&orderBizTag=0" +
+                "&timestamp=" + timestamp + "&preview=false&previewParam=&multiShop=" +
+                "&tenantId=" + tenantId + "&orderViewId=&shopCache=&orderScene=1" +
+                "&validateAllowOdAfterClose=" + shopId + "_true&buffetLimitMealTipsFlag=true" +
+                "&sign=" + sign;
+
+        String spuTempUlr = "https://rms.meituan.com/diancan/menu/api/pageSpuInfo?" +
+                "mtShopId=" + shopId +
+                "&tableNum=" + tableNum + "&reserveMode=0&peopleCount=0&selectedTime=0&pageNum=1" +
+                "&timestamp=" + timestamp + "&bizType=0" +
+                "&tenantId=" + tenantId + "&shopCache=" +
+                "&sign=" + sign;
+
+        HashMap<String, String> urlMap = new HashMap<>();
+        urlMap.put("menus", fpmTempUrl);
+        urlMap.put("spuss", spuTempUlr);
+        return urlMap;
+    }
 
 
 }
