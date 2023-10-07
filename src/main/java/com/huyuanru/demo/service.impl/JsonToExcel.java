@@ -26,8 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -233,10 +231,6 @@ public class JsonToExcel {
 
     /**
      * 提取字符串中所有的汉字
-     *
-     * @param str
-     * @return str
-     * @throws Exception
      */
   /*  public String intercept(String str) throws Exception {
         String regex = "[\u4E00-\u9FA5]";//汉字
