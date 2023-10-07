@@ -12,10 +12,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -72,9 +72,7 @@ public class JsonToExcel {
                     spuIds.addAll(cate.getSpuIds());
                 }
                 if (CollectionUtils.isNotEmpty(cate.getChildDishCategories())) {
-                    cate.getChildDishCategories().forEach(child -> {
-                        spuIds.addAll(child.getSpuIds());
-                    });
+                    cate.getChildDishCategories().forEach(child -> spuIds.addAll(child.getSpuIds()));
                 }
                 for (String spuId : spuIds) {
                     Map<String, Object> spu = (Map<String, Object>) spuMap.get(spuId);
@@ -139,7 +137,7 @@ public class JsonToExcel {
     public void get(HttpServletResponse response) {
         init();
         try (FileInputStream is = new FileInputStream(json.toFile());
-             ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             int i;
             while ((i = is.read()) != -1) {
                 baos.write(i);
@@ -155,7 +153,7 @@ public class JsonToExcel {
                 if (StringUtils.equals(category, "优惠") || StringUtils.equals("热销", category)) {
                     continue;
                 }
-                List items = itemGroup.getItems();
+                List<Object> items = itemGroup.getItems();
                 for (Object item : items) {
                     EleBaseInfo eleBaseInfo = JSONObject.parseObject(JSONObject.toJSONString(item), EleBaseInfo.class);
                     if (StringUtils.isBlank(eleBaseInfo.getPrice())) {
@@ -199,7 +197,7 @@ public class JsonToExcel {
     public void getShouYin(HttpServletResponse response) {
         init();
         try (FileInputStream is = new FileInputStream(sytJson.toFile());
-             ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             int i;
             while ((i = is.read()) != -1) {
                 baos.write(i);
@@ -237,10 +235,10 @@ public class JsonToExcel {
      * 提取字符串中所有的汉字
      *
      * @param str
-     * @return
+     * @return str
      * @throws Exception
      */
-    public String intercept(String str) throws Exception {
+  /*  public String intercept(String str) throws Exception {
         String regex = "[\u4E00-\u9FA5]";//汉字
         Matcher matcher = Pattern.compile(regex).matcher(str);
         StringBuffer sb = new StringBuffer();
@@ -249,7 +247,7 @@ public class JsonToExcel {
         }
 
         return sb.toString();
-    }
+    }*/
 
 
     private XSSFWorkbook export(HttpServletResponse response, List<BaseInfo> infos) throws IOException {

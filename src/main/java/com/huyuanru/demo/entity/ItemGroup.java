@@ -9,5 +9,5 @@ public class ItemGroup {
 
     private String name;
 
-    private List items;
+    private List<Object> items;
 }
