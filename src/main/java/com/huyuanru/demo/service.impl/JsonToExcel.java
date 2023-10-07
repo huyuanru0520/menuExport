@@ -48,7 +48,7 @@ public class JsonToExcel {
     public void toExcel(HttpServletResponse response) {
         init();
         try (FileInputStream mtUrlIS = new FileInputStream(mtUrl.toFile());
-             ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             int k;
             while ((k = mtUrlIS.read()) != -1) {
                 baos.write(k);
