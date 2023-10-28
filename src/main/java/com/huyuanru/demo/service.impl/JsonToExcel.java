@@ -17,10 +17,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -158,24 +157,31 @@ public class JsonToExcel {
                         continue;
                     }
                     List<EleSpecFood> specFoods = eleBaseInfo.getSpecFoods();
-                    if (CollectionUtils.isNotEmpty(specFoods) && specFoods.size() > 1) {
-                        for (EleSpecFood specFood : specFoods) {
-                            List<EleSpec> spec = specFood.getSpecs();
-                            if (CollectionUtils.isEmpty(spec)) {
-                                continue;
-                            }
-                            String value = spec.get(0).getValue();
-                            String realName = eleBaseInfo.getName().concat("(").concat(value).concat(")");
-                            String price = specFood.getPrice();
-                            BaseInfo info = BaseInfo.builder().category(category).name(realName).price(price)
-                                    .specification("1人份").nums("1").build();
-                            infos.add(info);
-                        }
-                    } else {
-                        BaseInfo info = BaseInfo.builder().category(category).name(eleBaseInfo.getName()).price(eleBaseInfo.getPrice())
-                                .specification("1人份").nums("1").build();
-                        infos.add(info);
-                    }
+
+                    /**
+                     *
+                     * 忽略判断大小份
+                     * if (CollectionUtils.isNotEmpty(specFoods) && specFoods.size() > 1) {
+                     *                         for (EleSpecFood specFood : specFoods) {
+                     *                             List<EleSpec> spec = specFood.getSpecs();
+                     *                             if (CollectionUtils.isEmpty(spec)) {
+                     *                                 continue;
+                     *                             }
+                     *                             String value = spec.get(0).getValue();
+                     *                             String realName = eleBaseInfo.getName().concat("(").concat(value).concat(")");
+                     *                             String price = specFood.getPrice();
+                     *                             BaseInfo info = BaseInfo.builder().category(category).name(realName).price(price)
+                     *                                     .specification("1人份").nums("1").build();
+                     *                             infos.add(info);
+                     *                         }
+                     *                     }
+                     *
+                     *
+                     */
+                    BaseInfo info = BaseInfo.builder().category(category).name(eleBaseInfo.getName()).price(eleBaseInfo.getPrice())
+                            .specification("1人份").nums("1").build();
+                    infos.add(info);
+
                     //intercept(eleBaseInfo.getName())
                 }
             }
@@ -191,6 +197,40 @@ public class JsonToExcel {
     }
 
 
+    /**
+     * 拼接url
+     *
+     * @param
+     * @return
+     */
+    /*private String parseImgaeUrl(String imageHash) {
+
+        if (StringUtils.isBlank(imageHash)) {
+            return imageHash;
+        }
+
+        char[] array = imageHash.toCharArray();
+
+        String url = array[0] + "/" + array[1] + array[2] + imageHash.substring(3);
+
+        if (imageHash.contains("jpeg")) {
+            url += ".jpeg";
+        } else if (imageHash.contains("png")) {
+            url += ".png";
+        } else {
+            log.error("错误的类型{}", imageHash);
+        }
+        return url;
+    }*/
+
+    /*private void downloadPic(List<BaseInfo> infos) {
+        String preUrl = "https://cube.elemecdn.com/";
+        String afterurl = "?x-oss-process=image/resize,m_fill,w_204,h_204/format,webp/quality,q_75";
+        Set<String> urls = infos.stream().
+                filter(info -> StringUtils.isNotBlank(info.getPicUrl()))
+                .map(info -> preUrl + info.getPicUrl() + afterurl)
+                .collect(Collectors.toSet());
+    }*/
     @GetMapping("/getShouyinTai")
     public void getShouYin(HttpServletResponse response) {
         init();
@@ -242,8 +282,6 @@ public class JsonToExcel {
 
         return sb.toString();
     }*/
-
-
     private XSSFWorkbook export(HttpServletResponse response, List<BaseInfo> infos) throws IOException {
         response.setContentType("application/vnd.ms-excel");
         response.addHeader("Content-Disposition", "attachment;fileName=" + URLEncoder.encode("meun_download.xls", "utf-8"));
@@ -294,7 +332,7 @@ public class JsonToExcel {
             String property = System.getProperty("user.dir");
             File file = new File(property);
             String absolutePath = file.getParentFile().getAbsolutePath();
-            log.error("absolutePath:{}", absolutePath);
+            //log.error("absolutePath:{}", absolutePath);
             Path path = Paths.get(absolutePath + "/templates");
             if (!Files.exists(path)) {
                 Files.createDirectory(path);
@@ -360,6 +398,4 @@ public class JsonToExcel {
         urlMap.put("spuss", spuTempUlr);
         return urlMap;
     }
-
-
 }

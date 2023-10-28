@@ -11,4 +11,5 @@ public class EleBaseInfo {
     private String name;
     private String price;
     private List<EleSpecFood> specFoods;
+    private String imageHash;
 }

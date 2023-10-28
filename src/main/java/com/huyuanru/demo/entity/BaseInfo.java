@@ -32,4 +32,9 @@ public class BaseInfo {
      * 商品数量
      */
     private String nums = "1";
+
+    /**
+     * 图片链接
+     */
+    private String picUrl ;
 }
