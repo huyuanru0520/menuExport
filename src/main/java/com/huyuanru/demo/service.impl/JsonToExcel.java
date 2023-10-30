@@ -156,7 +156,7 @@ public class JsonToExcel {
                     if (StringUtils.isBlank(eleBaseInfo.getPrice())) {
                         continue;
                     }
-                    List<EleSpecFood> specFoods = eleBaseInfo.getSpecFoods();
+                    //List<EleSpecFood> specFoods = eleBaseInfo.getSpecFoods();
 
                     /**
                      *
@@ -178,7 +178,8 @@ public class JsonToExcel {
                      *
                      *
                      */
-                    BaseInfo info = BaseInfo.builder().category(category).name(eleBaseInfo.getName()).price(eleBaseInfo.getPrice())
+                    BaseInfo info = BaseInfo.builder().category(category).name(eleBaseInfo.getName())
+                            .price(StringUtils.isBlank(eleBaseInfo.getOriginPrice()) ? eleBaseInfo.getPrice() : eleBaseInfo.getOriginPrice())
                             .specification("1人份").nums("1").build();
                     infos.add(info);
 

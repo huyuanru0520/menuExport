@@ -10,6 +10,7 @@ import java.util.List;
 public class EleBaseInfo {
     private String name;
     private String price;
+    private String originPrice;
     private List<EleSpecFood> specFoods;
     private String imageHash;
 }
