@@ -1,7 +1,6 @@
-package com.huyuanru.demo.entity;
+package com.huyuanru.demo.entity.eleme;
 
 
-import com.alibaba.fastjson.JSONObject;
 import lombok.Data;
 
 import java.util.List;

@@ -4,7 +4,14 @@ package com.huyuanru.demo.service.impl;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
-import com.huyuanru.demo.entity.*;
+import com.huyuanru.demo.entity.eleme.EleBaseInfo;
+import com.huyuanru.demo.entity.eleme.ItemGroup;
+import com.huyuanru.demo.entity.export.BaseInfo;
+import com.huyuanru.demo.entity.mt.Category;
+import com.huyuanru.demo.entity.mtzh.MTZHCTInfo;
+import com.huyuanru.demo.entity.mtzh.MTZHCTItem;
+import com.huyuanru.demo.entity.shouyintai.ShoYinTaiDish;
+import com.huyuanru.demo.entity.shouyintai.ShoyinTaiCate;
 import com.huyuanru.demo.utils.HttpUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -18,8 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,10 +43,14 @@ public class JsonToExcel {
 
     private Path json;
 
+    private Path mtzhJson;
+
     private Path mtUrl;
 
     private Path sytJson;
 
+
+    private final static String MTZH_STATUS = "AVAILABLE";
 
     @GetMapping("/getMtData")
     public void toExcel(HttpServletResponse response) {
@@ -52,9 +61,9 @@ public class JsonToExcel {
             while ((k = mtUrlIS.read()) != -1) {
                 baos.write(k);
             }
-            String str = baos.toString("utf-8");
+            String mtInfoStr = baos.toString("utf-8");
             //JSONObject jsonObject = JSONObject.parseObject(str);
-            Map<String, String> urlMap = parseUrl(str);
+            Map<String, String> urlMap = parseUrl(mtInfoStr);
             String menu = HttpUtils.get(urlMap.get("menus"));
             String spus = HttpUtils.get(urlMap.get("spuss"));
             List<BaseInfo> infos = new ArrayList<>();
@@ -73,6 +82,10 @@ public class JsonToExcel {
                 }
                 for (String spuId : spuIds) {
                     Map<String, Object> spu = (Map<String, Object>) spuMap.get(spuId);
+                    if (spu == null || spu.isEmpty()) {
+                        log.error("spuId{}没有该商品", spuId);
+                        continue;
+                    }
                     String name = (String) spu.get("spuName");
                     String price = String.valueOf(spu.get("currentPrice"));
                     BaseInfo baseInfo = BaseInfo.builder().category(cate.getCategoryName()).name(name).price(price)
@@ -85,6 +98,52 @@ public class JsonToExcel {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+
+    @GetMapping("/getMtZHCT")
+    public void getMtZHCT(HttpServletResponse response) {
+        init();
+        try (FileInputStream is = new FileInputStream(mtzhJson.toFile());
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            int i;
+            while ((i = is.read()) != -1) {
+                baos.write(i);
+            }
+            String mtZHStr = baos.toString("utf-8");
+            List<BaseInfo> infos = new ArrayList<>();
+            JSONObject responseBody = JSONObject.parseObject(mtZHStr);
+            JSONArray menus = responseBody.getJSONObject("data").getJSONObject("poi").getJSONArray("menus");
+            for (Object o : menus) {
+                MTZHCTInfo mtzhctInfo = JSONObject.parseObject(JSONObject.toJSONString(o), MTZHCTInfo.class);
+                List<Object> items = mtzhctInfo.getItems();
+
+                for (Object item : items) {
+                    MTZHCTItem mtzhctItem = JSONObject.parseObject(JSONObject.toJSONString(item), MTZHCTItem.class);
+                    String status = mtzhctItem.getStatus();
+                    String name = mtzhctItem.getName();
+                    List<Object> skus = mtzhctItem.getSkus();
+                    if (!MTZH_STATUS.equals(status) || StringUtils.isBlank(name) || CollectionUtils.isEmpty(skus)) {
+                        continue;
+                    }
+                    Integer price = JSONObject.parseObject(JSONObject.toJSONString(skus.get(0))).getInteger("price");
+                    BaseInfo baseInfo = BaseInfo.builder().category(mtzhctInfo.getName()).name(name)
+                            .price(String.valueOf(price / 100 + price % 100))
+                            .specification("1人份").nums("1").build();
+                    infos.add(baseInfo);
+                }
+            }
+            //过滤掉infos中name相同的
+            infos = infos.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(BaseInfo::getName))), ArrayList::new));
+            //按照category排序
+            infos.sort(Comparator.comparing(BaseInfo::getCategory));
+
+            XSSFWorkbook export = export(response, infos);
+            export.write(response.getOutputStream());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
 
@@ -141,9 +200,9 @@ public class JsonToExcel {
             }
             String str = baos.toString("utf-8");
             List<BaseInfo> infos = new ArrayList<>();
-            JSONObject jsonObject = JSONObject.parseObject(str);
-            JSONArray jsonArray = jsonObject.getJSONObject("data").getJSONObject("resultMap").getJSONObject("menu").getJSONArray("itemGroups");
-            for (Object o : jsonArray) {
+            JSONObject responseBody = JSONObject.parseObject(str);
+            JSONArray itemGroups = responseBody.getJSONObject("data").getJSONObject("resultMap").getJSONObject("menu").getJSONArray("itemGroups");
+            for (Object o : itemGroups) {
                 ItemGroup itemGroup = JSONObject.parseObject(JSONObject.toJSONString(o), ItemGroup.class);
                 //String category = intercept(itemGroup.getName());
                 String category = itemGroup.getName();
@@ -333,8 +392,16 @@ public class JsonToExcel {
             String property = System.getProperty("user.dir");
             File file = new File(property);
             String absolutePath = file.getParentFile().getAbsolutePath();
+
+
             //log.error("absolutePath:{}", absolutePath);
             Path path = Paths.get(absolutePath + "/templates");
+
+            templatePath = Paths.get(path + "/template.xlsx");
+            if (!Files.exists(templatePath)) {
+                templatePath = Files.createFile(templatePath);
+            }
+
             if (!Files.exists(path)) {
                 Files.createDirectory(path);
             }
@@ -342,10 +409,11 @@ public class JsonToExcel {
             if (!Files.exists(json)) {
                 json = Files.createFile(json);
             }
-            templatePath = Paths.get(path + "/template.xlsx");
-            if (!Files.exists(templatePath)) {
-                templatePath = Files.createFile(templatePath);
+            mtzhJson = Paths.get(path + "/美团智慧数据.json");
+            if (!Files.exists(mtzhJson)) {
+                mtzhJson = Files.createFile(mtzhJson);
             }
+
             mtUrl = Paths.get(path + "/美团url.json");
             if (!Files.exists(mtUrl)) {
                 mtUrl = Files.createFile(mtUrl);

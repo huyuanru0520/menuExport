@@ -12,6 +12,14 @@
 <div>
     <button class="button-1" onclick="MtDownload()">美团导出</button>
 </div>
+
+<div>
+    <button class="button-1" onclick="MtZHDownload()">美团智慧导出</button>
+</div>
+
+<div>
+    <button class="button-1" onclick="SYTDownload()">收银台</button>
+</div>
 </body>
 
 
@@ -63,6 +71,16 @@
         window.open("http://localhost:8080/jsonToExcel/getMtData");
     }
 
+
+
+    function MtZHDownload() {
+        window.open("http://localhost:8080/jsonToExcel/getMtZHCT");
+    }
+
+
+    function SYTDownload() {
+        window.open("http://localhost:8080/jsonToExcel/getShouyinTai");
+    }
 </script>
 
 

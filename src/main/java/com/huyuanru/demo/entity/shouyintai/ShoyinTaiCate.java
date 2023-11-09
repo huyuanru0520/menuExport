@@ -1,4 +1,4 @@
-package com.huyuanru.demo.entity;
+package com.huyuanru.demo.entity.shouyintai;
 
 
 import lombok.Data;
