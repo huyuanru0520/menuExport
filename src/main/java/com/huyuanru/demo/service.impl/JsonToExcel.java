@@ -235,7 +235,6 @@ public class JsonToExcel {
                      *                         }
                      *                     }
                      *
-                     *
                      */
                     BaseInfo info = BaseInfo.builder().category(category).name(eleBaseInfo.getName())
                             .price(StringUtils.isBlank(eleBaseInfo.getOriginPrice()) ? eleBaseInfo.getPrice() : eleBaseInfo.getOriginPrice())
@@ -256,32 +255,6 @@ public class JsonToExcel {
         }
     }
 
-
-    /**
-     * 拼接url
-     *
-     * @param
-     * @return
-     */
-    /*private String parseImgaeUrl(String imageHash) {
-
-        if (StringUtils.isBlank(imageHash)) {
-            return imageHash;
-        }
-
-        char[] array = imageHash.toCharArray();
-
-        String url = array[0] + "/" + array[1] + array[2] + imageHash.substring(3);
-
-        if (imageHash.contains("jpeg")) {
-            url += ".jpeg";
-        } else if (imageHash.contains("png")) {
-            url += ".png";
-        } else {
-            log.error("错误的类型{}", imageHash);
-        }
-        return url;
-    }*/
 
     /*private void downloadPic(List<BaseInfo> infos) {
         String preUrl = "https://cube.elemecdn.com/";
@@ -396,31 +369,29 @@ public class JsonToExcel {
 
             //log.error("absolutePath:{}", absolutePath);
             Path path = Paths.get(absolutePath + "/templates");
-
-            templatePath = Paths.get(path + "/template.xlsx");
-            if (!Files.exists(templatePath)) {
-                templatePath = Files.createFile(templatePath);
-            }
-
             if (!Files.exists(path)) {
                 Files.createDirectory(path);
             }
+            templatePath = Paths.get(path + "/template.xlsx");
+            if (!Files.exists(templatePath)) {
+                Files.createFile(templatePath);
+            }
             json = Paths.get(path + "/饿了么数据.json");
             if (!Files.exists(json)) {
-                json = Files.createFile(json);
+                Files.createFile(json);
             }
             mtzhJson = Paths.get(path + "/美团智慧数据.json");
             if (!Files.exists(mtzhJson)) {
-                mtzhJson = Files.createFile(mtzhJson);
+                Files.createFile(mtzhJson);
             }
 
             mtUrl = Paths.get(path + "/美团url.json");
             if (!Files.exists(mtUrl)) {
-                mtUrl = Files.createFile(mtUrl);
+                Files.createFile(mtUrl);
             }
             sytJson = Paths.get(path + "/收银台数据.json");
             if (!Files.exists(sytJson)) {
-                sytJson = Files.createFile(sytJson);
+                Files.createFile(sytJson);
             }
         } catch (Exception e) {
             e.printStackTrace();

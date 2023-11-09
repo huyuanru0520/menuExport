@@ -2,7 +2,6 @@ package com.huyuanru.demo.entity.shouyintai;
 
 import lombok.Data;
 
-import java.util.List;
 
 
 @Data
