@@ -21,6 +21,8 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
@@ -32,10 +34,10 @@ import java.util.stream.Collectors;
 
 
 @RestController
-@CrossOrigin
-@RequestMapping("/jsonToExcel")
+//@CrossOrigin
+@RequestMapping("/exportPlus")
 @Slf4j
-public class JsonToExcel {
+public class ExportPlus {
 
 
     private Path templatePath;
@@ -82,25 +84,22 @@ public class JsonToExcel {
             infos = infos.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(BaseInfo::getName))), ArrayList::new));
             //按照category排序
             infos.sort(Comparator.comparing(BaseInfo::getCategory));
-            XSSFWorkbook export = export(response, infos);
-            export.write(response.getOutputStream());
+            XSSFWorkbook workbook = export(response, infos);
+            ServletOutputStream outputStream = response.getOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
         } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
 
+
     @GetMapping("/getMtData")
-    public void toExcel(HttpServletResponse response) {
+    public void getMtData(@RequestParam(name = "mtURL") String mtURL, HttpServletResponse response) {
         init();
-        try (FileInputStream mtUrlIS = new FileInputStream(mtUrl.toFile());
-             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            int k;
-            while ((k = mtUrlIS.read()) != -1) {
-                baos.write(k);
-            }
-            String mtInfoStr = baos.toString("utf-8");
-            //JSONObject jsonObject = JSONObject.parseObject(str);
-            Map<String, String> urlMap = parseUrl(mtInfoStr);
+        try {
+            String decodeURL = new String(Base64.getDecoder().decode(mtURL));
+            Map<String, String> urlMap = parseUrl(decodeURL);
             String menu = HttpUtils.get(urlMap.get("menus"));
             String spus = HttpUtils.get(urlMap.get("spuss"));
             List<BaseInfo> infos = new ArrayList<>();
@@ -132,24 +131,20 @@ public class JsonToExcel {
             }
             XSSFWorkbook workbook = export(response, infos);
             workbook.write(response.getOutputStream());
+            workbook.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
 
-    @GetMapping("/getMtZHCT")
-    public void getMtZHCT(HttpServletResponse response) {
+    @PostMapping("/getMtZHCT")
+    public void getMtZHCT(@RequestBody JSONObject data, HttpServletResponse response) {
         init();
-        try (FileInputStream is = new FileInputStream(mtzhJson.toFile());
-             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            int i;
-            while ((i = is.read()) != -1) {
-                baos.write(i);
-            }
-            String mtZHStr = baos.toString("utf-8");
+        try {
+
             List<BaseInfo> infos = new ArrayList<>();
-            JSONObject responseBody = JSONObject.parseObject(mtZHStr);
+            JSONObject responseBody = JSONObject.parseObject(data.getString("content"));
             JSONArray menus = responseBody.getJSONObject("data").getJSONObject("poi").getJSONArray("menus");
             for (Object o : menus) {
                 MTZHCTInfo mtzhctInfo = JSONObject.parseObject(JSONObject.toJSONString(o), MTZHCTInfo.class);
@@ -175,8 +170,10 @@ public class JsonToExcel {
             //按照category排序
             infos.sort(Comparator.comparing(BaseInfo::getCategory));
 
-            XSSFWorkbook export = export(response, infos);
-            export.write(response.getOutputStream());
+            XSSFWorkbook workbook = export(response, infos);
+            ServletOutputStream outputStream = response.getOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -226,7 +223,7 @@ public class JsonToExcel {
         }
     }*/
 
-    @GetMapping("/getEleData")
+    @PostMapping("/getEleData")
     public void get(HttpServletResponse response) {
         init();
         try (FileInputStream is = new FileInputStream(json.toFile());
@@ -285,8 +282,10 @@ public class JsonToExcel {
             infos = infos.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(BaseInfo::getName))), ArrayList::new));
             //按照category排序
             infos.sort(Comparator.comparing(BaseInfo::getCategory));
-            XSSFWorkbook export = export(response, infos);
-            export.write(response.getOutputStream());
+            XSSFWorkbook workbook = export(response, infos);
+            ServletOutputStream outputStream = response.getOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -301,7 +300,7 @@ public class JsonToExcel {
                 .map(info -> preUrl + info.getPicUrl() + afterurl)
                 .collect(Collectors.toSet());
     }*/
-    @GetMapping("/getShouyinTai")
+    @PostMapping("/getShouyinTai")
     public void getShouYin(HttpServletResponse response) {
         init();
         try (FileInputStream is = new FileInputStream(sytJson.toFile());

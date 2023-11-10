@@ -1,26 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-    <meta charset="UTF-8">
-    <title>生成excel</title>
+    <meta charset="utf-8">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+          content="width=device-width,initial-scale=1,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+    <meta http-equiv="Cache-Control" content="no-siteapp"/>
 </head>
+
 <body>
-<div>
-    <button role="button" class="button-1" onclick="EleDownload()">饿了么导出</button>
-</div>
+<form>
+    <p>
+        <select class="select-1" name="platform" id="platform">
+            <option value="exportEleData">饿了么</option>
+            <option value="getMtZHCT">美团智慧</option>
+            <option value="getShouyinTai">收银台</option>
+        </select>
+    </p>
+    <textarea class="textarea-1" name="message" id="message" rows="10" cols="50" placeholder="粘贴数据"></textarea>
+    <input class="button-1" type="submit" value="提交" onclick="exports()">
+</form>
 
-<div>
-    <button class="button-1" onclick="MtDownload()">美团导出</button>
-</div>
 
-<div>
-    <button class="button-1" onclick="MtZHDownload()">美团智慧导出</button>
-</div>
+    <br>
 
-<div>
-    <button class="button-1" onclick="SYTDownload()">收银台</button>
-</div>
+
+<p>
+
+
+<form>
+    <input type="text" name="mtURL" id="mtURL" placeholder="输入美团链接">
+    <input class="button-1" type="submit" value="提交" onclick="exportsMT()">
+</form>
+
+
+</p>
+
+
 </body>
+
+
 
 
 
@@ -57,31 +78,77 @@
         background-color: #F082AC;
     }
 
+
+    .select-1 {
+        background-color: #f2f2f2;
+        border: none;
+        padding: 10px;
+        font-size: 16px;
+        color: #333;
+    }
+
+    .textarea-1 {
+        color: #FFFFFF;
+    }
+
 </style>
 
+
+
 <script type="text/javascript">
+    function exports() {
+        var messages = document.getElementById("message").value
+        var platform = document.getElementById("platform").value
+        if (!platform) {
+            platform = "exportEleData";
+        }
+        if (!messages){
+            alert("未粘贴数据");
+            return;
+        }
+        //alert(messages);
+        //alert(JSON.stringify(messages));
+        var xhr = new XMLHttpRequest();
+        var data = {
+            content: messages,
+        };
+        xhr.open("POST", "http://localhost:8080/exportPlus/" + platform, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.responseType = "blob";
 
-
-    function EleDownload() {
-        window.open("http://localhost:8080/jsonToExcel/getEleData");
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                //decodeURI解码需要后端处理。文件类型固定可自定义名字
+                const blob = xhr.response
+                const a = document.createElement('a')
+                a.href = URL.createObjectURL(blob)
+                a.download = "菜单.xlsx"  //a.download = '历史数据.xlsx'; // 成功
+                a.click();
+                //document.location.href = 'http://localhost:8080'
+            }
+        };
+        xhr.send(JSON.stringify(data));
     }
 
 
-    function MtDownload() {
-        window.open("http://localhost:8080/jsonToExcel/getMtData");
+    function exportsMT() {
+        var mtURL = document.getElementById("mtURL").value;
+        if (!mtURL){
+            alert("未输入url");
+            return;
+        }else {
+            var b64_url = utf8_to_b64(mtURL);
+            window.open("http://localhost:8080/exportPlus/getMtData?mtURL=" + b64_url);
+        }
     }
 
 
-
-    function MtZHDownload() {
-        window.open("http://localhost:8080/jsonToExcel/getMtZHCT");
-    }
-
-
-    function SYTDownload() {
-        window.open("http://localhost:8080/jsonToExcel/getShouyinTai");
+    function utf8_to_b64(str) {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+            function (match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
     }
 </script>
-
 
 </html>

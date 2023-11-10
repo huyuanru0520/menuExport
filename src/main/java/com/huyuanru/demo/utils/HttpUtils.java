@@ -27,27 +27,26 @@ import org.apache.http.util.EntityUtils;
 
 /**
  * HTTPS 调用接口
- *
  */
 
 @Slf4j
 public class HttpUtils {
 
     //获取接口数据
-    public static String post(String url ,String requestBody){
+    public static String post(String url, String requestBody) {
         String result = null;
         DefaultHttpClient httpclient = (DefaultHttpClient) wrapClient(new DefaultHttpClient());
         try {
             HttpPost httpPost = new HttpPost(url);
-            httpPost.addHeader("Content-type","application/json");
+            httpPost.addHeader("Content-type", "application/json");
             httpPost.setHeader("Accept", "*/*");
             httpPost.setEntity(new StringEntity(requestBody, Charset.forName("UTF-8").toString()));
             try {
                 HttpResponse httpResponse = httpclient.execute(httpPost);
                 HttpEntity entity = httpResponse.getEntity();
                 System.out.println(httpResponse.getStatusLine());
-                if(entity!=null){
-                    result = EntityUtils.toString(entity,Charset.forName("UTF-8").toString());
+                if (entity != null) {
+                    result = EntityUtils.toString(entity, Charset.forName("UTF-8").toString());
                 }
             } catch (ClientProtocolException e) {
                 log.error("获取第三方接口数据ClientProtocolException异常错误:" + e.getMessage());
@@ -61,36 +60,36 @@ public class HttpUtils {
     }
 
     //获取接口数据
-    public static String get(String url){
+    public static String get(String url) {
         String result = null;
         DefaultHttpClient httpclient = new DefaultHttpClient();
         HttpGet httpGet = new HttpGet(url);
-        httpGet.addHeader("Content-type","application/json; charset=utf-8");
+        httpGet.addHeader("Content-type", "application/json; charset=utf-8");
         httpGet.setHeader("Accept", "application/json");
         try {
             HttpResponse httpResponse = httpclient.execute(httpGet);
             HttpEntity entity = httpResponse.getEntity();
             System.out.println(httpResponse.getStatusLine());
-            if(entity!=null){
-                result = EntityUtils.toString(entity,Charset.forName("UTF-8").toString());
+            if (entity != null) {
+                result = EntityUtils.toString(entity, Charset.forName("UTF-8").toString());
             }
         } catch (ClientProtocolException e) {
             log.error("获取第三方接口数据ClientProtocolException异常错误:" + e.getMessage());
         } catch (IOException e) {
             log.error("获取第三方接口数据IOException异常错误:" + e.getMessage());
+        } finally {
+            httpclient.close();
         }
         return result;
     }
 
     //参数base就是我们创建的DefaultHttpClient对象
-    public static HttpClient wrapClient(HttpClient base)
-    {
+    public static HttpClient wrapClient(HttpClient base) {
         try {
             SSLContext ctx = SSLContext.getInstance("TLS");
             X509TrustManager tm = new X509TrustManager() {
 
-                public X509Certificate[] getAcceptedIssuers()
-                {
+                public X509Certificate[] getAcceptedIssuers() {
                     // TODO Auto-generated method stub
                     return null;
                 }
@@ -108,7 +107,7 @@ public class HttpUtils {
                 }
 
             };
-            ctx.init(null, new TrustManager[] { tm }, null);
+            ctx.init(null, new TrustManager[]{tm}, null);
             SSLSocketFactory ssf = new SSLSocketFactory(ctx);
             ssf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
             ClientConnectionManager ccm = base.getConnectionManager();
