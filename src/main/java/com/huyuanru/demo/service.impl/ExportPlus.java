@@ -22,7 +22,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
@@ -41,12 +40,6 @@ public class ExportPlus {
 
 
     private Path templatePath;
-
-    private Path json;
-
-    private Path mtzhJson;
-
-    private Path mtUrl;
 
     private Path sytJson;
 
@@ -223,73 +216,7 @@ public class ExportPlus {
         }
     }*/
 
-    @PostMapping("/getEleData")
-    public void get(HttpServletResponse response) {
-        init();
-        try (FileInputStream is = new FileInputStream(json.toFile());
-             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            int i;
-            while ((i = is.read()) != -1) {
-                baos.write(i);
-            }
-            String str = baos.toString("utf-8");
-            List<BaseInfo> infos = new ArrayList<>();
-            JSONObject responseBody = JSONObject.parseObject(str);
-            JSONArray itemGroups = responseBody.getJSONObject("data").getJSONObject("resultMap").getJSONObject("menu").getJSONArray("itemGroups");
-            for (Object o : itemGroups) {
-                ItemGroup itemGroup = JSONObject.parseObject(JSONObject.toJSONString(o), ItemGroup.class);
-                //String category = intercept(itemGroup.getName());
-                String category = itemGroup.getName();
-                if (StringUtils.equals(category, "优惠") || StringUtils.equals("热销", category)) {
-                    continue;
-                }
-                List<Object> items = itemGroup.getItems();
-                for (Object item : items) {
-                    EleBaseInfo eleBaseInfo = JSONObject.parseObject(JSONObject.toJSONString(item), EleBaseInfo.class);
-                    if (StringUtils.isBlank(eleBaseInfo.getPrice())) {
-                        continue;
-                    }
-                    //List<EleSpecFood> specFoods = eleBaseInfo.getSpecFoods();
 
-                    /**
-                     *
-                     * 忽略判断大小份
-                     * if (CollectionUtils.isNotEmpty(specFoods) && specFoods.size() > 1) {
-                     *                         for (EleSpecFood specFood : specFoods) {
-                     *                             List<EleSpec> spec = specFood.getSpecs();
-                     *                             if (CollectionUtils.isEmpty(spec)) {
-                     *                                 continue;
-                     *                             }
-                     *                             String value = spec.get(0).getValue();
-                     *                             String realName = eleBaseInfo.getName().concat("(").concat(value).concat(")");
-                     *                             String price = specFood.getPrice();
-                     *                             BaseInfo info = BaseInfo.builder().category(category).name(realName).price(price)
-                     *                                     .specification("1人份").nums("1").build();
-                     *                             infos.add(info);
-                     *                         }
-                     *                     }
-                     *
-                     */
-                    BaseInfo info = BaseInfo.builder().category(category).name(eleBaseInfo.getName())
-                            .price(StringUtils.isBlank(eleBaseInfo.getOriginPrice()) ? eleBaseInfo.getPrice() : eleBaseInfo.getOriginPrice())
-                            .specification("1人份").nums("1").build();
-                    infos.add(info);
-
-                    //intercept(eleBaseInfo.getName())
-                }
-            }
-            //过滤掉infos中name相同的
-            infos = infos.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(BaseInfo::getName))), ArrayList::new));
-            //按照category排序
-            infos.sort(Comparator.comparing(BaseInfo::getCategory));
-            XSSFWorkbook workbook = export(response, infos);
-            ServletOutputStream outputStream = response.getOutputStream();
-            workbook.write(outputStream);
-            workbook.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
 
     /*private void downloadPic(List<BaseInfo> infos) {
@@ -401,8 +328,6 @@ public class ExportPlus {
             String property = System.getProperty("user.dir");
             File file = new File(property);
             String absolutePath = file.getParentFile().getAbsolutePath();
-
-
             //log.error("absolutePath:{}", absolutePath);
             Path path = Paths.get(absolutePath + "/templates");
             if (!Files.exists(path)) {
@@ -411,23 +336,6 @@ public class ExportPlus {
             templatePath = Paths.get(path + "/template.xlsx");
             if (!Files.exists(templatePath)) {
                 Files.createFile(templatePath);
-            }
-            json = Paths.get(path + "/饿了么数据.json");
-            if (!Files.exists(json)) {
-                Files.createFile(json);
-            }
-            mtzhJson = Paths.get(path + "/美团智慧数据.json");
-            if (!Files.exists(mtzhJson)) {
-                Files.createFile(mtzhJson);
-            }
-
-            mtUrl = Paths.get(path + "/美团url.json");
-            if (!Files.exists(mtUrl)) {
-                Files.createFile(mtUrl);
-            }
-            sytJson = Paths.get(path + "/收银台数据.json");
-            if (!Files.exists(sytJson)) {
-                Files.createFile(sytJson);
             }
         } catch (Exception e) {
             e.printStackTrace();
