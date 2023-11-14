@@ -11,43 +11,67 @@
 </head>
 
 <body>
-<form>
-    <p>
-        <select class="select-1" name="platform" id="platform">
-            <option value="exportEleData">饿了么</option>
-            <option value="getMtZHCT">美团智慧</option>
-            <option value="getShouyinTai">收银台</option>
-        </select>
-    </p>
-    <textarea class="textarea-1" name="message" id="message" rows="10" cols="50" placeholder="粘贴数据"></textarea>
-    <input class="button-1" type="submit" value="提交" onclick="exports()">
-</form>
-
-
-    <br>
-
-
-<p>
-
-
-<form>
-    <input type="text" name="mtURL" id="mtURL" placeholder="输入美团链接">
-    <input class="button-1" type="submit" value="提交" onclick="exportsMT()">
-</form>
-
-
-</p>
-
-
+<h1 id="treat" class="head1" hidden="hidden" style="color: orangered">给小狗写的导出页面</h1>
+<div class="father">
+    <div class="son">
+        <form>
+<!--            <p>-->
+<!--                <select class="select-1" name="platform" id="platform">-->
+<!--                    <option value="exportEleData">饿了么</option>-->
+<!--                    <option value="exportMtData">美团</option>-->
+<!--                    <option value="exportMtZHCT">美团智慧</option>-->
+<!--                    <option value="exportShouyinTai">收银台</option>-->
+<!--                </select>-->
+<!--            </p>-->
+            <textarea class="textarea-1" name="message" id="message" rows="10" cols="50"
+                      style="margin: 20px 0px 0px 10px; width: 585px; height: 403px;"
+                      placeholder="粘贴数据"></textarea>
+            <br>
+            <input class="button-1" type="button" value="提交" onclick="exports()">
+        </form>
+    </div>
+</div>
+<br>
 </body>
 
 
-
-
-
 <style>
+
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    .head1 {
+        margin-top: 20px;
+        margin-left: 40%;
+    }
+
+    /* 父容器 */
+    .father {
+        height: 700px;
+        background-color: #ffffff;
+        /* 父容器开启相对定位*/
+        position: relative;
+    }
+
+    /* 子容器 */
+    .son {
+        width: 600px;
+        height: 300px;
+        background-color: white;
+        /* 子容器开启绝对定位*/
+        position: absolute;
+        /* 水平垂直居中 */
+        top: 30%;
+        margin-top: -150px;
+        left: 50%;
+        margin-left: -300px;
+    }
+
+
     .button-1 {
-        background-color: #EA4C89;
+        background-color: orangered;
         border-radius: 8px;
         border-style: none;
         box-sizing: border-box;
@@ -60,7 +84,8 @@
         height: 40px;
         line-height: 20px;
         list-style: none;
-        margin: 50px;
+        margin-top: 20px;
+        margin-left: 520px;
         outline: none;
         padding: 10px 16px;
         position: relative;
@@ -75,46 +100,65 @@
 
     .button-1:hover,
     .button-1:focus {
-        background-color: #F082AC;
+        background-color: rgba(227, 63, 63, 0.98);
     }
 
 
     .select-1 {
+        margin-top: 10px;
         border: none;
         padding: 10px;
         font-size: 16px;
-        color: #333;
+        color: white;
+        background: orangered;
     }
 
     .textarea-1 {
-        color: #FFFFFF;
+        color: black;
+        border-color: orangered;
+        font-size: 16px;
+        width: 580px;
+        margin-top: 20px;
+        margin-left: 10px;
+        border-radius: 8px;
+    }
+
+    ::placeholder{
+        margin-bottom: 10px;
+        color: slategray;
     }
 
 </style>
 
 
-
 <script type="text/javascript">
     function exports() {
-        var messages = document.getElementById("message").value
-        var platform = document.getElementById("platform").value
-        if (!platform) {
-            platform = "exportEleData";
-        }
-        if (!messages){
+        let messages = document.getElementById("message").value
+        //let platform = document.getElementById("platform").value
+        // if (!platform) {
+        //     platform = "exportEleData";
+        // }
+        if (!messages) {
             alert("未粘贴数据");
             return;
         }
         //alert(messages);
         //alert(JSON.stringify(messages));
-        var xhr = new XMLHttpRequest();
-        var data = {
+        const data = {
             content: messages,
+            //platform: platform
         };
-        xhr.open("POST", "http://localhost:8080/exportPlus/" + platform, true);
+        const parames = JSON.stringify(data)
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://localhost:8080/exportPlus/exportInOne");
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.responseType = "blob";
-
+        xhr.withCredentials = true;
+        xhr.addEventListener("readystatechange", function () {
+            if (this.readyState === 4) {
+                console.log(this.responseText);
+            }
+        });
         xhr.onload = function () {
             if (xhr.status === 200) {
                 //decodeURI解码需要后端处理。文件类型固定可自定义名字
@@ -126,27 +170,15 @@
                 //document.location.href = 'http://localhost:8080'
             }
         };
-        xhr.send(JSON.stringify(data));
+        xhr.send(parames);
     }
 
 
-    function exportsMT() {
-        var mtURL = document.getElementById("mtURL").value;
-        if (!mtURL){
-            alert("未输入url");
-            return;
-        }else {
-            var b64_url = utf8_to_b64(mtURL);
-            window.open("http://localhost:8080/exportPlus/getMtData?mtURL=" + b64_url);
+    function treat() {
+        var day = new Date().getDay();
+        if (day != 0 && day != 6) {
+
         }
-    }
-
-
-    function utf8_to_b64(str) {
-        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
-            function (match, p1) {
-                return String.fromCharCode('0x' + p1);
-            }));
     }
 </script>
 

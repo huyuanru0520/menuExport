@@ -43,13 +43,30 @@ public class ExportPlus {
 
     private Path sytJson;
 
-
     private final static String MTZH_STATUS = "AVAILABLE";
 
 
-    @PostMapping("/exportEleData")
-    public void exportEleData(@RequestBody JSONObject data, HttpServletResponse response) {
+    @PostMapping("/exportInOne")
+    public void exportInOne(@RequestBody JSONObject data, HttpServletResponse response) {
+        String content = data.getString("content");
         init();
+        if (StringUtils.isNotBlank(content)) {
+            if (content.contains("query.v2")) {
+                exportEleData(data, response);
+            }
+            if (content.contains("poi")) {
+                exportMtZHCT(data, response);
+            }
+            if (content.contains("shopId")) {
+                exportMtData(data, response);
+            }
+        }
+    }
+
+
+    private void exportEleData(@RequestBody JSONObject data, HttpServletResponse response) {
+        XSSFWorkbook workbook = null;
+        OutputStream outputStream = null;
         try {
             List<BaseInfo> infos = new ArrayList<>();
             JSONObject responseBody = JSONObject.parseObject(data.getString("content"));
@@ -77,22 +94,29 @@ public class ExportPlus {
             infos = infos.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(BaseInfo::getName))), ArrayList::new));
             //按照category排序
             infos.sort(Comparator.comparing(BaseInfo::getCategory));
-            XSSFWorkbook workbook = export(response, infos);
-            ServletOutputStream outputStream = response.getOutputStream();
+            workbook = export(response, infos);
+            outputStream = response.getOutputStream();
             workbook.write(outputStream);
-            workbook.close();
         } catch (Exception e) {
             log.error(e.getMessage());
+        } finally {
+            try {
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+                if (workbook != null) {
+                    workbook.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
 
-    @GetMapping("/getMtData")
-    public void getMtData(@RequestParam(name = "mtURL") String mtURL, HttpServletResponse response) {
-        init();
+    private void exportMtData(@RequestBody JSONObject data, HttpServletResponse response) {
         try {
-            String decodeURL = new String(Base64.getDecoder().decode(mtURL));
-            Map<String, String> urlMap = parseUrl(decodeURL);
+            Map<String, String> urlMap = parseUrl(data.getString("content"));
             String menu = HttpUtils.get(urlMap.get("menus"));
             String spus = HttpUtils.get(urlMap.get("spuss"));
             List<BaseInfo> infos = new ArrayList<>();
@@ -131,9 +155,9 @@ public class ExportPlus {
     }
 
 
-    @PostMapping("/getMtZHCT")
-    public void getMtZHCT(@RequestBody JSONObject data, HttpServletResponse response) {
-        init();
+    private void exportMtZHCT(@RequestBody JSONObject data, HttpServletResponse response) {
+        OutputStream outputStream = null;
+        XSSFWorkbook workbook = null;
         try {
 
             List<BaseInfo> infos = new ArrayList<>();
@@ -162,74 +186,29 @@ public class ExportPlus {
             infos = infos.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(BaseInfo::getName))), ArrayList::new));
             //按照category排序
             infos.sort(Comparator.comparing(BaseInfo::getCategory));
-
-            XSSFWorkbook workbook = export(response, infos);
-            ServletOutputStream outputStream = response.getOutputStream();
-            workbook.write(outputStream);
-            workbook.close();
+            outputStream = response.getOutputStream();
+            workbook = export(response, infos);
+            writeTo(workbook, outputStream);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+                if (workbook != null) {
+                    workbook.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
     }
 
 
-
-
-/*
-    @PostMapping("/toBaseInfo")
-    public void toBaseInfo(@RequestBody QueryBody queryBody, HttpServletResponse response) {
-        try {
-            init();
-            //String spuss = HttpUtils.get("https://rms.meituan.com/diancan/menu/api/pageSpuInfo?mtShopId=601078148&tableNum=24169569&reserveMode=0&peopleCount=0&selectedTime=0&pageNum=1&timestamp=1688711604669&tenantId=11648303&brandId=&restaurantViewId=&shopCache=&sign=8e9cc70ccc85c645cc7eda9a679754a4");
-            //String menus = HttpUtils.get("https://rms.meituan.com/diancan/menu/api/pageSpuInfo?qrcode=https%253A%252F%252Frms.meituan.com%252Fdiancan%252F14%252F1yh2YpgJBnT&pageNum=1&timestamp=1688707191291&sign=8e9cc70ccc85c645cc7eda9a679754a4https://rms.meituan.com/diancan/menu/api/pageSpuInfo?qrcode=https%253A%252F%252Frms.meituan.com%252Fdiancan%252F14%252F1yh2YpgJBnT&pageNum=2&timestamp=1688707191291&sign=8e9cc70ccc85c645cc7eda9a679754a4");
-            String menus = HttpUtils.get(queryBody.getMenus());
-            String spuss = HttpUtils.get(queryBody.getSpuss());
-            List<BaseInfo> infos = new ArrayList<>();
-
-            JSONObject spuString = JSONObject.parseObject(spuss);
-
-            Map<String, Object> spuMap = spuString.getJSONObject("data").getJSONObject("spuDetail");
-
-            JSONObject menuString = JSONObject.parseObject(menus);
-
-            JSONArray categories = menuString.getJSONObject("data").getJSONArray("categories");
-            for (Object category : categories) {
-                Category cate = JSONObject.parseObject(JSONObject.toJSONString(category), Category.class);
-                List<String> spuIds = cate.getSpuIds();
-                for (String spuId : spuIds) {
-                    Map<String, Object> spu = (Map<String, Object>) spuMap.get(spuId);
-                    String name = (String) spu.get("spuName");
-                    String price = String.valueOf(spu.get("currentPrice"));
-                    BaseInfo baseInfo = BaseInfo.builder().category(cate.getCategoryName()).name(name).price(price)
-                            .specification("1人份").nums("1").build();
-                    infos.add(baseInfo);
-                }
-            }
-            //2010格式设置
-            //response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            //2003格式设置
-            XSSFWorkbook export = export(response, infos);
-            export.write(response.getOutputStream());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }*/
-
-
-
-
-    /*private void downloadPic(List<BaseInfo> infos) {
-        String preUrl = "https://cube.elemecdn.com/";
-        String afterurl = "?x-oss-process=image/resize,m_fill,w_204,h_204/format,webp/quality,q_75";
-        Set<String> urls = infos.stream().
-                filter(info -> StringUtils.isNotBlank(info.getPicUrl()))
-                .map(info -> preUrl + info.getPicUrl() + afterurl)
-                .collect(Collectors.toSet());
-    }*/
-    @PostMapping("/getShouyinTai")
-    public void getShouYin(HttpServletResponse response) {
-        init();
+    @PostMapping("/exportShouyinTai")
+    public void exportShouyinTai(HttpServletResponse response) {
         try (FileInputStream is = new FileInputStream(sytJson.toFile());
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             int i;
@@ -265,19 +244,6 @@ public class ExportPlus {
     }
 
 
-    /**
-     * 提取字符串中所有的汉字
-     */
-  /*  public String intercept(String str) throws Exception {
-        String regex = "[\u4E00-\u9FA5]";//汉字
-        Matcher matcher = Pattern.compile(regex).matcher(str);
-        StringBuffer sb = new StringBuffer();
-        while (matcher.find()) {
-            sb.append(matcher.group());
-        }
-
-        return sb.toString();
-    }*/
     private XSSFWorkbook export(HttpServletResponse response, List<BaseInfo> infos) throws IOException {
         response.setContentType("application/vnd.ms-excel");
         response.addHeader("Content-Disposition", "attachment;fileName=" + URLEncoder.encode("meun_download.xls", "utf-8"));
@@ -381,5 +347,19 @@ public class ExportPlus {
         urlMap.put("menus", fpmTempUrl);
         urlMap.put("spuss", spuTempUlr);
         return urlMap;
+    }
+
+
+    private void writeTo(XSSFWorkbook workbook, OutputStream out) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(8192)) {
+            try {
+                workbook.write(baos);
+            } finally {
+                workbook.close();
+            }
+            baos.writeTo(out);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
