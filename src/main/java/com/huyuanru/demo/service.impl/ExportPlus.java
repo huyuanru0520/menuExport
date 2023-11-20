@@ -14,14 +14,14 @@ import com.huyuanru.demo.entity.shouyintai.ShoYinTaiDish;
 import com.huyuanru.demo.entity.shouyintai.ShoyinTaiCate;
 import com.huyuanru.demo.utils.HttpUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 public class ExportPlus {
 
 
-    private Path templatePath;
 
     private Path sytJson;
 
@@ -49,15 +48,12 @@ public class ExportPlus {
     @PostMapping("/exportInOne")
     public void exportInOne(@RequestBody JSONObject data, HttpServletResponse response) {
         String content = data.getString("content");
-        init();
         if (StringUtils.isNotBlank(content)) {
             if (content.contains("query.v2")) {
                 exportEleData(data, response);
-            }
-            if (content.contains("poi")) {
+            } else if (content.contains("poi")) {
                 exportMtZHCT(data, response);
-            }
-            if (content.contains("shopId")) {
+            } else if (content.contains("shopId")) {
                 exportMtData(data, response);
             }
         }
@@ -127,10 +123,10 @@ public class ExportPlus {
             for (Object category : categories) {
                 List<String> spuIds = new ArrayList<>();
                 Category cate = JSONObject.parseObject(JSONObject.toJSONString(category), Category.class);
-                if (CollectionUtils.isNotEmpty(cate.getSpuIds())) {
+                if (!CollectionUtils.isEmpty(cate.getSpuIds())) {
                     spuIds.addAll(cate.getSpuIds());
                 }
-                if (CollectionUtils.isNotEmpty(cate.getChildDishCategories())) {
+                if (!CollectionUtils.isEmpty(cate.getChildDishCategories())) {
                     cate.getChildDishCategories().forEach(child -> spuIds.addAll(child.getSpuIds()));
                 }
                 for (String spuId : spuIds) {
@@ -223,7 +219,7 @@ public class ExportPlus {
                 ShoyinTaiCate shoyinTaiCate = JSONObject.parseObject(JSONObject.toJSONString(o), ShoyinTaiCate.class);
                 String categoryName = shoyinTaiCate.getCategoryName();
                 List<ShoYinTaiDish> cateDishList = shoyinTaiCate.getCateDishList();
-                if (CollectionUtils.isNotEmpty(cateDishList)) {
+                if (!CollectionUtils.isEmpty(cateDishList)) {
                     for (ShoYinTaiDish shoYinTaiDish : cateDishList) {
                         BaseInfo info = BaseInfo.builder().category(categoryName).name(shoYinTaiDish.getDishName())
                                 .price(String.valueOf(shoYinTaiDish.getPrice() / 100))
@@ -247,8 +243,7 @@ public class ExportPlus {
     private XSSFWorkbook export(HttpServletResponse response, List<BaseInfo> infos) throws IOException {
         response.setContentType("application/vnd.ms-excel");
         response.addHeader("Content-Disposition", "attachment;fileName=" + URLEncoder.encode("meun_download.xls", "utf-8"));
-        FileInputStream inputStream = new FileInputStream(templatePath.toFile());
-        XSSFWorkbook workbook = new XSSFWorkbook(inputStream);
+        XSSFWorkbook workbook = new XSSFWorkbook(Objects.requireNonNull(this.getClass().getResourceAsStream("/template.xlsx")));
         CellStyle cellStyle = workbook.createCellStyle();
         Font font = workbook.createFont();
         font.setFontName("宋体");
@@ -289,25 +284,6 @@ public class ExportPlus {
     }
 
 
-    private void init() {
-        try {
-            String property = System.getProperty("user.dir");
-            File file = new File(property);
-            String absolutePath = file.getParentFile().getAbsolutePath();
-            //log.error("absolutePath:{}", absolutePath);
-            Path path = Paths.get(absolutePath + "/templates");
-            if (!Files.exists(path)) {
-                Files.createDirectory(path);
-            }
-            templatePath = Paths.get(path + "/template.xlsx");
-            if (!Files.exists(templatePath)) {
-                Files.createFile(templatePath);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
 
     private Map<String, String> parseUrl(String orgUrl) {
         //将s按&分割,并且分割后按等号分割并汇集成map
@@ -327,6 +303,7 @@ public class ExportPlus {
         Object tenantId = paramsMap.get("tenantId");
         Object sign = paramsMap.get("sign");
         Object timestamp = paramsMap.get("t");
+
 
         String fpmTempUrl = "https://rms.meituan.com/diancan/menu/api/loadFMPInfo?" +
                 "mtShopId=" + shopId +
