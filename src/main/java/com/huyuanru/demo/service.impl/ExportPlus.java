@@ -275,7 +275,6 @@ public class ExportPlus {
         List<BaseInfo> baseInfos = Lists.newArrayList();
         Object content = data.getJSONObject("content").getJSONObject("result").getJSONArray("content").stream().findFirst().get();
         JSONArray spuInfos = JSONObject.parseObject(JSONObject.toJSONString(content)).getJSONArray("content");
-        Set<JSONObject> categorySets = new HashSet<JSONObject>();
         for (Object temp : spuInfos) {
             JSONObject spuInfo = JSONObject.parseObject(JSONObject.toJSONString(temp));
             String name = spuInfo.getString("productName");
